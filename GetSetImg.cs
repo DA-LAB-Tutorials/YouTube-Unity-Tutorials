@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class GetSetImage : MonoBehaviour
+public class GetSetImg : MonoBehaviour
 {
     public GameObject imageGameObj;
     Image image;
