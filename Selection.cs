@@ -26,28 +26,30 @@ public class Selection : MonoBehaviour
     public Material highlightMaterial;
     public Material selectionMaterial;
 
-    private Material originalMaterial;
+    private Material originalMaterialHighlight;
+    private Material originalMaterialSelection;
     private Transform highlight;
     private Transform selection;
     private RaycastHit raycastHit;
 
     void Update()
     {
+        // Highlight
         if (highlight != null)
         {
-            highlight.GetComponent<MeshRenderer>().material = originalMaterial; 
-            highlight = null; 
+            highlight.GetComponent<MeshRenderer>().sharedMaterial = originalMaterialHighlight;
+            highlight = null;
         }
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         if (!EventSystem.current.IsPointerOverGameObject() && Physics.Raycast(ray, out raycastHit)) //Make sure you have EventSystem in the hierarchy before using EventSystem
         {
-            highlight = raycastHit.transform; 
-            if (highlight.CompareTag("Selectable") && highlight != selection) 
+            highlight = raycastHit.transform;
+            if (highlight.CompareTag("Selectable") && highlight != selection)
             {
                 if (highlight.GetComponent<MeshRenderer>().material != highlightMaterial)
                 {
-                    originalMaterial = highlight.GetComponent<MeshRenderer>().material; 
-                    highlight.GetComponent<MeshRenderer>().material = highlightMaterial; 
+                    originalMaterialHighlight = highlight.GetComponent<MeshRenderer>().material;
+                    highlight.GetComponent<MeshRenderer>().material = highlightMaterial;
                 }
             }
             else
@@ -56,38 +58,33 @@ public class Selection : MonoBehaviour
             }
         }
 
-
-        if (Input.GetKey(KeyCode.Mouse0) && !EventSystem.current.IsPointerOverGameObject()) //Make sure you have EventSystem in the hierarchy before using EventSystem
+        // Selection
+        if (Input.GetMouseButtonDown(0))
         {
-            if (selection != null)
+            if (highlight)
             {
-                selection.GetComponent<MeshRenderer>().material = originalMaterial; 
-                selection = null; 
-            }
-            if (!EventSystem.current.IsPointerOverGameObject() && Physics.Raycast(ray, out raycastHit)) 
-            {
-                selection = raycastHit.transform; 
-                if (selection.CompareTag("Selectable")) 
+                if (selection != null)
                 {
-                    selection.GetComponent<MeshRenderer>().material = selectionMaterial; 
+                    selection.GetComponent<MeshRenderer>().material = originalMaterialSelection;
                 }
-                else
+                selection = raycastHit.transform;
+                if (selection.GetComponent<MeshRenderer>().material != selectionMaterial)
                 {
+                    originalMaterialSelection = originalMaterialHighlight;
+                    selection.GetComponent<MeshRenderer>().material = selectionMaterial;
+                }
+                highlight = null;
+            }
+            else
+            {
+                if (selection)
+                {
+                    selection.GetComponent<MeshRenderer>().material = originalMaterialSelection;
                     selection = null;
                 }
             }
         }
+
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
