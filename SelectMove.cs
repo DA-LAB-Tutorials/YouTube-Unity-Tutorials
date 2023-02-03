@@ -30,9 +30,10 @@ public class SelectMove : MonoBehaviour
     public GameObject inputPosYGameObj;
     public GameObject inputPosZGameObj;
 
-    private Material originalMaterial;
+    private Material originalMaterialHighlight;
+    private Material originalMaterialSelection;
     private Transform highlight;
-    private Transform selectedTransform;
+    private Transform selection;
     private RaycastHit raycastHit;
     private TMP_InputField inputPosX;
     private TMP_InputField inputPosY;
@@ -53,21 +54,21 @@ public class SelectMove : MonoBehaviour
 
     void Update()
     {
-        // Highlight an object on mouse-over if it has a Selectable tag using Raycast
+        // Highlight
         if (highlight != null)
         {
-            highlight.GetComponent<MeshRenderer>().material = originalMaterial;
+            highlight.GetComponent<MeshRenderer>().sharedMaterial = originalMaterialHighlight;
             highlight = null;
         }
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        if (!EventSystem.current.IsPointerOverGameObject() && Physics.Raycast(ray, out raycastHit)) //Ensure you have EventSystem in the Editor hierarchy before using EventSystem
+        if (!EventSystem.current.IsPointerOverGameObject() && Physics.Raycast(ray, out raycastHit)) //Make sure you have EventSystem in the hierarchy before using EventSystem
         {
             highlight = raycastHit.transform;
-            if (highlight.CompareTag("Selectable") && highlight != selectedTransform)
+            if (highlight.CompareTag("Selectable") && highlight != selection)
             {
                 if (highlight.GetComponent<MeshRenderer>().material != highlightMaterial)
                 {
-                    originalMaterial = highlight.GetComponent<MeshRenderer>().material;
+                    originalMaterialHighlight = highlight.GetComponent<MeshRenderer>().material;
                     highlight.GetComponent<MeshRenderer>().material = highlightMaterial;
                 }
             }
@@ -77,48 +78,50 @@ public class SelectMove : MonoBehaviour
             }
         }
 
-        // Select an object on the mouse Click if it has a Selectable tag using Raycast 
-        if (Input.GetKey(KeyCode.Mouse0) && !EventSystem.current.IsPointerOverGameObject())
+        // Selection
+        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
         {
-            if (selectedTransform != null)
+            if (highlight)
             {
-                selectedTransform.GetComponent<MeshRenderer>().material = originalMaterial;
-                selectedTransform = null;
-            }
-            if (!EventSystem.current.IsPointerOverGameObject() && Physics.Raycast(ray, out raycastHit))
-            {
-                selectedTransform = raycastHit.transform;
-                if (selectedTransform.CompareTag("Selectable"))
+                if (selection != null)
                 {
-                    selectedTransform.GetComponent<MeshRenderer>().material = selectionMaterial;
+                    selection.GetComponent<MeshRenderer>().material = originalMaterialSelection;
+                }
+                selection = raycastHit.transform;
+                if (selection.GetComponent<MeshRenderer>().material != selectionMaterial)
+                {
+                    originalMaterialSelection = originalMaterialHighlight;
+                    selection.GetComponent<MeshRenderer>().material = selectionMaterial;
                     GetSelectedPos();
                 }
-                else
-                {
-                    selectedTransform = null;
-                    GetSelectedPos();
-                }
+                highlight = null;
             }
             else
             {
-                selectedTransform = null;
-                GetSelectedPos();
+                if (selection)
+                {
+                    selection.GetComponent<MeshRenderer>().material = originalMaterialSelection;
+                    selection = null;
+                    GetSelectedPos();
+                }
             }
         }
+
     }
 
 
     // Assign the positions X, Y, and Z of the selected Object to input fields. Hide the input fields if no object is selected
     private void GetSelectedPos()
     {
-        if (selectedTransform)
+        if (selection)
         {
+            Debug.Log("Check if");
             inputPosXGameObj.SetActive(true);
             inputPosYGameObj.SetActive(true);
             inputPosZGameObj.SetActive(true);
-            inputPosX.text = selectedTransform.position.x.ToString();
-            inputPosY.text = selectedTransform.position.y.ToString();
-            inputPosZ.text = selectedTransform.position.z.ToString();
+            inputPosX.text = selection.position.x.ToString();
+            inputPosY.text = selection.position.y.ToString();
+            inputPosZ.text = selection.position.z.ToString();
         }
         else
         {
@@ -156,30 +159,13 @@ public class SelectMove : MonoBehaviour
     // Set the position of the selected object to match the user input
     public void SetSelectedPos()
     {
-        if (selectedTransform && (inputPosX.isFocused || inputPosY.isFocused || inputPosZ.isFocused))
+        if (selection && (inputPosX.isFocused || inputPosY.isFocused || inputPosZ.isFocused))
         {
 
-            selectedTransform.position = new Vector3(posX, posY, posZ);
-            inputPosX.text = selectedTransform.position.x.ToString();
-            inputPosY.text = selectedTransform.position.y.ToString();
-            inputPosZ.text = selectedTransform.position.z.ToString();
-        }
-        else
-        {
-            inputPosXGameObj.SetActive(false);
-            inputPosYGameObj.SetActive(false);
-            inputPosZGameObj.SetActive(false);
+            selection.position = new Vector3(posX, posY, posZ);
+            inputPosX.text = selection.position.x.ToString();
+            inputPosY.text = selection.position.y.ToString();
+            inputPosZ.text = selection.position.z.ToString();
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
