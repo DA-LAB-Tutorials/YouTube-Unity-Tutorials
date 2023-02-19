@@ -25,56 +25,45 @@ using System;
 
 public class Map : MonoBehaviour
 {
-    public string apiKey;
-    public float lat = -33.85660618894087f;
-    public float lon = 151.21500701957325f;
-    public int zoom = 14;
+    public string accessToken;
+    public enum style { Light, Dark, Streets, Outdoors, Satellite, SatelliteStreets };
+    public style mapStyle = style.Streets;
     public enum resolution { low = 1, high = 2 };
     public resolution mapResolution = resolution.low;
-    public enum type { roadmap, satellite, gybrid, terrain };
-    public type mapType = type.roadmap;
-    private string url = "";
-    private int mapWidth = 640;
-    private int mapHeight = 640;
-    private bool mapIsLoading = false; //not used. Can be used to know that the map is loading 
-    private Rect rect;
+    public double[] boundingBox = new double[] { 151.196023022085, -33.8777251205232, 151.216012372138, -33.8683894791246 }; //[lon(min), lat(min), lon(max), lat(max)]
 
-    private string apiKeyLast;
-    private float latLast = -33.85660618894087f;
-    private float lonLast = 151.21500701957325f;
-    private int zoomLast = 14;
-    private resolution mapResolutionLast = resolution.low;
-    private type mapTypeLast = type.roadmap;
-    private bool updateMap = true;
+    private string[] styleStr = new string[] { "light-v10", "dark-v10", "streets-v11", "outdoors-v11", "satellite-v9", "satellite-streets-v11" };
+    private string url = "";
+    private Material mapMaterial;
+    private int mapWidthPx = 1280;
+    private int mapHeightPx = 1280;
+    private double planeWidth;
+    private double planeHeight;
 
 
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(GetGoogleMap());
-        rect = gameObject.GetComponent<RawImage>().rectTransform.rect;
-        mapWidth = (int)Math.Round(rect.width);
-        mapHeight = (int)Math.Round(rect.height);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (updateMap && (apiKeyLast != apiKey || !Mathf.Approximately(latLast, lat) || !Mathf.Approximately(lonLast, lon) || zoomLast != zoom || mapResolutionLast != mapResolution || mapTypeLast != mapType))
+        MatchPlaneToScreenSize();
+        if (gameObject.GetComponent<MeshRenderer>() == null)
         {
-            rect = gameObject.GetComponent<RawImage>().rectTransform.rect;
-            mapWidth = (int)Math.Round(rect.width);
-            mapHeight = (int)Math.Round(rect.height);
-            StartCoroutine(GetGoogleMap());
-            updateMap = false;
+            gameObject.AddComponent<MeshRenderer>();
         }
+        mapMaterial = new Material(Shader.Find("Unlit/Texture"));
+        gameObject.GetComponent<MeshRenderer>().material = mapMaterial;
+        StartCoroutine(GetMapbox());
     }
 
+    // Update is called once per frame void Update(){ }
 
-    IEnumerator GetGoogleMap()
+    public void GenerateMapOnClick()
     {
-        url = "https://maps.googleapis.com/maps/api/staticmap?center=" + lat + "," + lon + "&zoom=" + zoom + "&size=" + mapWidth + "x" + mapHeight + "&scale=" + mapResolution + "&maptype=" + mapType + "&key=" + apiKey;
-        mapIsLoading = true;
+        StartCoroutine(GetMapbox());
+    }
+
+    IEnumerator GetMapbox()
+    {
+        url = "https://api.mapbox.com/styles/v1/mapbox/" + styleStr[(int)mapStyle] + "/static/[" + boundingBox[0] + "," + boundingBox[1] + "," + boundingBox[2] + "," + boundingBox[3] + "]/" + mapWidthPx + "x" + mapHeightPx + "?" + "access_token=" + accessToken;
         UnityWebRequest www = UnityWebRequestTexture.GetTexture(url);
         yield return www.SendWebRequest();
         if (www.result != UnityWebRequest.Result.Success)
@@ -83,17 +72,30 @@ public class Map : MonoBehaviour
         }
         else
         {
-            mapIsLoading = false;
-            gameObject.GetComponent<RawImage>().texture = ((DownloadHandlerTexture)www.downloadHandler).texture;
-
-            apiKeyLast = apiKey;
-            latLast = lat;
-            lonLast = lon;
-            zoomLast = zoom;
-            mapResolutionLast = mapResolution;
-            mapTypeLast = mapType;
-            updateMap = true;
+            gameObject.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", ((DownloadHandlerTexture)www.downloadHandler).texture);
         }
     }
+
+
+    //Set the scale of plane to match the screen size
+    private void MatchPlaneToScreenSize()
+    {
+        double planeToCameraDistance = Vector3.Distance(gameObject.transform.position, Camera.main.transform.position);
+        double planeHeightScale = (2.0 * Math.Tan(0.5f * Camera.main.fieldOfView * (Math.PI / 180)) * planeToCameraDistance) / 10.0; //Radians = (Math.PI / 180) * degrees. Default plane is 10 units in x and z
+        double planeWidthScale = planeHeightScale * Camera.main.aspect;
+        gameObject.transform.localScale = new Vector3((float)planeWidthScale, 1, (float)planeHeightScale);
+        //Set map width and height in pixel based on view aspec ratio
+        if (Camera.main.aspect > 1) //Width is bigger than height
+        {
+            mapWidthPx = 1280; //Mapbox width should be a number between 1 and 1280 pixels.
+            mapHeightPx = (int)Math.Round(1280 / Camera.main.aspect); //Height is proportional to to view aspect ratio
+        }
+        else //Height is bigger than width
+        {
+            mapHeightPx = 1280; //Mapbox height should be a number between 1 and 1280 pixels.
+            mapWidthPx = (int)Math.Round(1280 / Camera.main.aspect); //Width is proportional to to view aspect ratio
+        }
+    }
+
 
 }
