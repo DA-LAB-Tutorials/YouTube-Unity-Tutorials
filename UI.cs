@@ -20,36 +20,37 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.EventSystems;
 
 public class UI : MonoBehaviour
 {
-    public GameObject onClick;
-    private Button onClickButton;
-    public GameObject pointer;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-        onClickButton = onClick.GetComponent<Button>();
-    }
+    public GameObject fileMenuBody;
+    public GameObject fileMenuExpand;
+    public GameObject fileMenuCollapse;
 
     // Update is called once per frame
     void Update()
     {
-        HotKeys();
+        if (fileMenuCollapse.activeSelf)
+        {
+            if (!IsMouseOverUI(fileMenuBody) && !IsMouseOverUI(fileMenuCollapse))
+            {
+                fileMenuCollapseButton.onClick.Invoke();
+            }
+        }
     }
 
-    private void HotKeys()
+    private bool IsMouseOverUI(GameObject ui)
     {
-        if(Input.GetKey(KeyCode.Space) && Input.GetKeyDown(KeyCode.C))
+        if (ui.activeSelf)
         {
-            onClickButton.onClick.Invoke();
+            RectTransform rectTrasform = ui.GetComponent<RectTransform>();
+            Vector2 localMousePos = rectTrasform.InverseTransformPoint(Input.mousePosition); 
+            if (rectTrasform.rect.Contains(localMousePos)) 
+            {
+                return true;
+            }
         }
-
-        if (Input.GetKey(KeyCode.Space) && Input.GetKeyDown(KeyCode.P))
-        {
-            ExecuteEvents.Execute<IPointerDownHandler>(pointer, new PointerEventData(EventSystem.current), ExecuteEvents.pointerDownHandler);
-        }
+        return false;
     }
+
 }
